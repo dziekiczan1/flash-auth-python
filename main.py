@@ -42,7 +42,7 @@ with app.app_context():
 
 @app.route('/')
 def home():
-    return render_template("index.html")
+    return render_template("index.html", logged_in=current_user.is_authenticated)
 
 
 @app.route('/register', methods=["GET", "POST"])
@@ -50,13 +50,10 @@ def register():
     if request.method == "POST":
         email = request.form.get('email')
         result = db.session.execute(db.select(User).where(User.email == email))
-        # Note, email in db is unique so will only have one result.
         user = result.scalar()
         if user:
-            # User already exists
             flash("You've already signed up with that email, log in instead!")
             return redirect(url_for('login'))
-
         hash_and_salted_password = generate_password_hash(
             request.form.get('password'),
             method='pbkdf2:sha256',
@@ -71,7 +68,7 @@ def register():
         db.session.commit()
         login_user(new_user)
         return redirect(url_for("secrets"))
-    return render_template("register.html")
+    return render_template("register.html", logged_in=current_user.is_authenticated)
 
 
 @app.route('/login', methods=["GET", "POST"])
@@ -79,10 +76,8 @@ def login():
     if request.method == "POST":
         email = request.form.get('email')
         password = request.form.get('password')
-
         result = db.session.execute(db.select(User).where(User.email == email))
         user = result.scalar()
-        # Email doesn't exist or password incorrect.
         if not user:
             flash("That email does not exist, please try again.")
             return redirect(url_for('login'))
@@ -92,8 +87,7 @@ def login():
         else:
             login_user(user)
             return redirect(url_for('secrets'))
-
-    return render_template("login.html")
+    return render_template("login.html", logged_in=current_user.is_authenticated)
 
 
 # Only logged-in users can access the route
@@ -101,8 +95,7 @@ def login():
 @login_required
 def secrets():
     print(current_user.name)
-    # Passing the name from the current_user
-    return render_template("secrets.html", name=current_user.name)
+    return render_template("secrets.html", name=current_user.name, logged_in=True)
 
 
 @app.route('/logout')
